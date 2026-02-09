@@ -1,4 +1,6 @@
-# Getting Started
+# Jitsuu - News Application
+
+A modern news aggregator built with React (Vite), Express, and NewsAPI.
 
 ## Prerequisites
 - Node.js (v14 or higher)
@@ -6,63 +8,72 @@
 
 ## Installation
 
-### Server Setup
+### 1. Backend Setup
 ```bash
 cd server
 npm install
 ```
 
-Create a `.env` file in the server directory:
+Create a `.env` file in the `server` directory:
 ```
-NEWS_API_KEY=your_newsapi_key_here
-PORT=5000
+API_KEY=your_newsapi_key_here
+PORT=3000
 ```
+Get your free API key from [NewsAPI.org](https://newsapi.org)
 
 Start the server:
 ```bash
-npm start
+npm run dev
 # or
 node server.js
 ```
+Server runs at `http://localhost:3000`
 
-### Client Setup
+### 2. Frontend Setup
+In a **new terminal**, from the project root:
 ```bash
 cd client
 npm install
-npm start
+npm run dev
 ```
-
-The React app will open at `http://localhost:3000`
+App opens at `http://localhost:2100`
 
 ## Project Structure
 ```
 jitsuu/
 ├── server/
-│   ├── server.js          # Express backend
+│   ├── server.js          # Express backend with NewsAPI proxy
 │   ├── package.json
-│   └── .env
+│   └── .env               # API credentials (not tracked)
 └── client/
     ├── src/
     │   ├── services/
-    │   │   └── newsService.js    # Axios API service
+    │   │   └── newsService.js       # Axios API service
     │   ├── components/
-    │   │   └── NewsArticles.js   # News display component
-    │   ├── App.js               # Main component
-    │   └── index.js
-    ├── public/
-    │   └── index.html
+    │   │   ├── Header.jsx           # Navigation + search
+    │   │   ├── News.jsx             # All news with pagination
+    │   │   ├── TopHeadlines.jsx     # Top headlines by category
+    │   │   ├── CountryNews.jsx      # News by country
+    │   │   ├── ErrorMessage.jsx     # Error UI
+    │   │   └── SkeletonCard.jsx     # Loading placeholder
+    │   ├── App.jsx                  # Router setup
+    │   └── main.jsx
+    ├── vite.config.js               # Vite config + API proxy
     └── package.json
 ```
 
 ## Features
-- **Axios Integration**: Fully configured axios service with interceptors
-- **Error Handling**: Comprehensive error handling in the API service
-- **Category Filtering**: Filter news by different categories
-- **Responsive Design**: Mobile-friendly UI with CSS Grid
-- **Loading States**: User-friendly loading and error messages
+- ✅ **Global Search**: Search news by keyword (on home page)
+- ✅ **Category Filtering**: Filter top headlines by 7+ categories
+- ✅ **Country-Specific News**: Browse news from 9 countries
+- ✅ **Responsive Design**: 1 column (mobile) → 2 (tablet) → 3 (desktop)
+- ✅ **Skeleton Loaders**: Animated loading cards for better UX
+- ✅ **Error Handling**: User-friendly error messages
+- ✅ **Pagination**: Navigate through articles
+- ✅ **Backend Proxy**: NewsAPI calls via Express (avoids CORS)
 
 ## API Endpoints (Backend)
-- `GET /api/news` - Get all news articles
-- `GET /api/news/category/:category` - Get news by category
-- `GET /api/news/search?q=query` - Search news articles
-- `GET /api/news/country/:country` - Get news by country
+- `GET /` - Server health check
+- `GET /all-news?q=keyword&pageSize=40&page=1` - Search all news
+- `GET /top-headlines?category=business&pageSize=40&page=1` - Top headlines by category
+- `GET /country/:iso?pageSize=40&page=1` - News by country ISO code (e.g., `us`, `in`, `gb`)

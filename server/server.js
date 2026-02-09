@@ -70,23 +70,27 @@ function fetchNews(url, res) {
             const newsApiCode = error.response?.data?.code;
             const errorMessage = error.response?.data?.message || error.message;
 
-            console.error('NewsAPI Error:', error.response?.data || error.message);
+            console.error('NewsAPI Error:', { status, code: newsApiCode, message: errorMessage });
 
+            // Check if rate limited
             const isRateLimited = status === 429 || newsApiCode === 'rateLimited';
+            
+            // If rate limited and we have cached data, serve it
             if (isRateLimited && cached) {
                 return res.status(200).json({
                     success: true,
-                    message: "Rate limited by NewsAPI. Serving cached results.",
+                    message: "Rate limited by NewsAPI. Serving cached results (may be outdated).",
                     data: cached,
-                    meta: { cached: true }
+                    meta: { cached: true, timestamp: `API Rate Limit - ${new Date().toISOString()}` }
                 });
             }
 
+            // If no cache and rate limited, return 429
             const httpStatus = isRateLimited ? 429 : 500;
             res.status(httpStatus).json({
                 success: false,
                 message: isRateLimited
-                    ? "NewsAPI rate limit reached. Please try later or use a new API key."
+                    ? "NewsAPI rate limit reached. Please try again later or use a different API key."
                     : "Failed to fetch data from the API",
                 error: errorMessage,
                 meta: {
@@ -129,8 +133,8 @@ app.get("/country/:iso", (req, res) => {
     fetchNews(url, res);
 });
 
-// port
-const PORT = process.env.PORT || 5000;
+// Start server
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
