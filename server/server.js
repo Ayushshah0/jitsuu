@@ -6,6 +6,7 @@ const axios = require('axios');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
+const preferenceRoutes = require('./routes/preferences');
 
 const app = express();
 app.use(cors());
@@ -19,20 +20,29 @@ if (process.env.MONGODB_URI) {
   console.warn('⚠️ MONGODB_URI not set. Authentication features will not work.');
 }
 
-// Auth routes
+// Routes
 app.use('/auth', authRoutes);
+app.use('/preferences', preferenceRoutes);
 
 app.get("/", (req, res) => {
     res.json({
         message: "News API Server is running",
         endpoints: {
-            allNews: "/all-news",
-            topHeadlines: "/top-headlines",
-            countryNews: "/country/:iso",
+            news: {
+                allNews: "GET /all-news",
+                topHeadlines: "GET /top-headlines",
+                countryNews: "GET /country/:iso"
+            },
             auth: {
                 signup: "POST /auth/signup",
                 login: "POST /auth/login",
                 me: "GET /auth/me (requires token)"
+            },
+            preferences: {
+                get: "GET /preferences (requires token)",
+                update: "PUT /preferences (requires token)",
+                updateTheme: "PATCH /preferences/theme (requires token)",
+                updateNotifications: "PATCH /preferences/notifications (requires token)"
             }
         }
     });
