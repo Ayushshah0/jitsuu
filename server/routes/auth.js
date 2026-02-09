@@ -111,7 +111,7 @@ router.post('/login', async (req, res) => {
     }
     
     // Check password
-    const isPasswordValid = await user.matchPassword(password);
+    const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
