@@ -1,12 +1,9 @@
 const express = require('express');
 const Preference = require('../models/Preference');
-const { verifyToken } = require('./auth');
+const authMiddleware = require('../middleware/authMiddleware');
 const { newsCategories, allKeywords } = require('../services/newsKeywords');
 
 const router = express.Router();
-
-// Middleware to verify token (import from auth)
-const authMiddleware = verifyToken;
 
 // Public endpoint: Get available news keywords and categories
 router.get('/available', (req, res) => {

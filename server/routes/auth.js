@@ -1,32 +1,10 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key';
-
-// Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  
-  if (!token) {
-    return res.status(401).json({
-      success: false,
-      message: 'No token provided'
-    });
-  }
-  
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    res.status(401).json({
-      success: false,
-      message: 'Invalid or expired token'
-    });
-  }
-};
 
 // Signup route
 router.post('/signup', async (req, res) => {
@@ -147,7 +125,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Protected route example - Get current user
-router.get('/me', verifyToken, async (req, res) => {
+router.get('/me', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     res.status(200).json({
@@ -164,4 +142,3 @@ router.get('/me', verifyToken, async (req, res) => {
 });
 
 module.exports = router;
-module.exports.verifyToken = verifyToken;
