@@ -1,144 +1,182 @@
 const express = require('express');
+const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Preference = require('../models/Preference');
 const authMiddleware = require('../middleware/authMiddleware');
 
-const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key';
+// Helper function to generate JWT token
+const generateToken = (userId) => {
+  return jwt.sign(
+    { id: userId },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE || '7d' }
+  );
+};
 
-// Signup route
-router.post('/signup', async (req, res) => {
+// @route   POST /auth/register
+// @desc    Register a new user
+// @access  Public
+router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, confirmPassword } = req.body;
-    
+    const { name, email, password } = req.body;
+
     // Validation
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'All fields are required'
+        message: 'Please provide name, email and password'
       });
     }
-    
-    if (password !== confirmPassword) {
+
+    if (password.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'Passwords do not match'
+        message: 'Password must be at least 6 characters'
       });
     }
-    
+
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'Email already registered'
+        message: 'User with this email already exists'
       });
     }
-    
-    // Create new user
-    const user = new User({ name, email, password });
-    await user.save();
-    
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user._id, email: user.email, name: user.name },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    
+
+    // Create user
+    const user = await User.create({
+      name,
+      email,
+      password
+    });
+
+    // Create default preferences for the user
+    await Preference.create({
+      userId: user._id
+    });
+
+    // Generate token
+    const token = generateToken(user._id);
+
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email
+        },
+        token
       }
     });
+
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error('Register error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during signup',
+      message: 'Error registering user',
       error: error.message
     });
   }
 });
 
-// Login route
+// @route   POST /auth/login
+// @desc    Login user
+// @access  Public
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     // Validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Email and password are required'
+        message: 'Please provide email and password'
       });
     }
-    
-    // Find user and include password
+
+    // Check if user exists (include password for comparison)
     const user = await User.findOne({ email }).select('+password');
+    
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password'
+        message: 'Invalid credentials'
       });
     }
-    
+
     // Check password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
+    const isPasswordMatch = await user.comparePassword(password);
+    
+    if (!isPasswordMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password'
+        message: 'Invalid credentials'
       });
     }
-    
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user._id, email: user.email, name: user.name },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    
-    res.status(200).json({
+
+    // Generate token
+    const token = generateToken(user._id);
+
+    res.json({
       success: true,
       message: 'Login successful',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email
+        },
+        token
       }
     });
+
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during login',
+      message: 'Error logging in',
       error: error.message
     });
   }
 });
 
-// Protected route example - Get current user
+// @route   GET /auth/me
+// @desc    Get current user
+// @access  Private
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    res.status(200).json({
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
       success: true,
-      user
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt
+      }
     });
+
   } catch (error) {
+    console.error('Get user error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Error fetching user',
       error: error.message
     });
   }
 });
 
 module.exports = router;
+

@@ -34,7 +34,7 @@ app.get("/", (req, res) => {
                 countryNews: "GET /country/:iso"
             },
             auth: {
-                signup: "POST /auth/signup",
+                register: "POST /auth/register",
                 login: "POST /auth/login",
                 me: "GET /auth/me (requires token)"
             },
