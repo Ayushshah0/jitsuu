@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { allKeywords } = require('../services/newsKeywords');
 
 const preferenceSchema = new mongoose.Schema({
   userId: {
@@ -10,7 +11,8 @@ const preferenceSchema = new mongoose.Schema({
   categories: {
     type: [String],
     default: ['general', 'technology', 'business'],
-    enum: ['general', 'business', 'entertainment', 'health', 'science', 'sports', 'technology']
+    enum: ['general', 'business', 'entertainment', 'health', 'science', 'sports', 'technology'],
+    description: 'NewsAPI compatible categories'
   },
   country: {
     type: String,
@@ -27,6 +29,17 @@ const preferenceSchema = new mongoose.Schema({
     type: String,
     default: 'light',
     enum: ['light', 'dark', 'auto']
+  },
+  keywords: {
+    type: [String],
+    default: [],
+    validate: {
+      validator: function(v) {
+        if (!v || v.length === 0) return true; // Allow empty array
+        return v.every(keyword => allKeywords.includes(keyword));
+      },
+      message: 'Invalid keyword provided. Please choose from the predefined list.'
+    }
   },
   notifications: {
     email: {
@@ -56,10 +69,6 @@ const preferenceSchema = new mongoose.Schema({
         default: false
       }
     }
-  },
-  keywords: {
-    type: [String],
-    default: []
   },
   lastEmailSent: {
     type: Date,

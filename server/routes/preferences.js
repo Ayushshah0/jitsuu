@@ -1,11 +1,31 @@
 const express = require('express');
 const Preference = require('../models/Preference');
 const { verifyToken } = require('./auth');
+const { newsCategories, allKeywords } = require('../services/newsKeywords');
 
 const router = express.Router();
 
 // Middleware to verify token (import from auth)
 const authMiddleware = verifyToken;
+
+// Public endpoint: Get available news keywords and categories
+router.get('/available', (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      data: {
+        categories: newsCategories,
+        allKeywords: allKeywords
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching available keywords',
+      error: error.message
+    });
+  }
+});
 
 // Get user preferences
 router.get('/', authMiddleware, async (req, res) => {
@@ -142,6 +162,55 @@ router.patch('/notifications', authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error updating notifications',
+      error: error.message
+    });
+  }
+});
+
+// Update keywords preferences
+router.patch('/keywords', authMiddleware, async (req, res) => {
+  try {
+    const { keywords } = req.body;
+    
+    if (!Array.isArray(keywords)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Keywords must be an array'
+      });
+    }
+    
+    // Validate keywords
+    const invalidKeywords = keywords.filter(k => !allKeywords.includes(k));
+    if (invalidKeywords.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid keywords provided',
+        invalidKeywords
+      });
+    }
+    
+    let preference = await Preference.findOne({ userId: req.user.id });
+    
+    if (!preference) {
+      preference = new Preference({
+        userId: req.user.id,
+        keywords
+      });
+    } else {
+      preference.keywords = keywords;
+    }
+    
+    await preference.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Keywords updated successfully',
+      data: preference.keywords
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error updating keywords',
       error: error.message
     });
   }

@@ -39,10 +39,12 @@ app.get("/", (req, res) => {
                 me: "GET /auth/me (requires token)"
             },
             preferences: {
+                getAvailable: "GET /preferences/available (public - get all keywords/categories)",
                 get: "GET /preferences (requires token)",
                 update: "PUT /preferences (requires token)",
                 updateTheme: "PATCH /preferences/theme (requires token)",
-                updateNotifications: "PATCH /preferences/notifications (requires token)"
+                updateNotifications: "PATCH /preferences/notifications (requires token)",
+                updateKeywords: "PATCH /preferences/keywords (requires token)"
             }
         }
     });
