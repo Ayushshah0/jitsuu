@@ -9,7 +9,7 @@ export default defineConfig({
     host: true, // Allows access from dev tunnel
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:5000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }

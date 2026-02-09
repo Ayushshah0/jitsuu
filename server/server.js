@@ -5,52 +5,53 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const connectDB = require('./config/db');
+
+// Import routes
 const authRoutes = require('./routes/auth');
 const preferenceRoutes = require('./routes/preferences');
 
 const app = express();
+
+// Connect to MongoDB
+connectDB();
+
+// Middleware
 app.use(cors());
-app.use(express.json()); // Add JSON parser
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB Connection
-if (process.env.MONGODB_URI) {
-  connectDB();
-} else {
-  console.warn('⚠️ MONGODB_URI not set. Authentication features will not work.');
-}
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/preferences', preferenceRoutes);
 
-// Routes
-app.use('/auth', authRoutes);
-app.use('/preferences', preferenceRoutes);
-
+// Root route
 app.get("/", (req, res) => {
     res.json({
         message: "News API Server is running",
         endpoints: {
+            auth: {
+                register: "POST /api/auth/register",
+                login: "POST /api/auth/login",
+                me: "GET /api/auth/me"
+            },
+            preferences: {
+                getAvailable: "GET /api/preferences/available",
+                get: "GET /api/preferences",
+                update: "PUT /api/preferences",
+                updateTheme: "PATCH /api/preferences/theme",
+                updateNotifications: "PATCH /api/preferences/notifications",
+                updateKeywords: "PATCH /api/preferences/keywords",
+                reset: "DELETE /api/preferences"
+            },
             news: {
                 allNews: "GET /all-news",
                 topHeadlines: "GET /top-headlines",
                 countryNews: "GET /country/:iso"
-            },
-            auth: {
-                register: "POST /auth/register",
-                login: "POST /auth/login",
-                me: "GET /auth/me (requires token)"
-            },
-            preferences: {
-                getAvailable: "GET /preferences/available (public - get all keywords/categories)",
-                get: "GET /preferences (requires token)",
-                update: "PUT /preferences (requires token)",
-                updateTheme: "PATCH /preferences/theme (requires token)",
-                updateNotifications: "PATCH /preferences/notifications (requires token)",
-                updateKeywords: "PATCH /preferences/keywords (requires token)",
-                reset: "DELETE /preferences (requires token)"
             }
         }
     });
 });
- 
+
 const API_KEY = process.env.API_KEY;
 
 // Small in-memory cache to reduce API calls during development
@@ -164,8 +165,9 @@ app.get("/country/:iso", (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`📡 MongoDB connection initiated...`);
 });
