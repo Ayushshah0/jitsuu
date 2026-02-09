@@ -44,7 +44,8 @@ app.get("/", (req, res) => {
                 update: "PUT /preferences (requires token)",
                 updateTheme: "PATCH /preferences/theme (requires token)",
                 updateNotifications: "PATCH /preferences/notifications (requires token)",
-                updateKeywords: "PATCH /preferences/keywords (requires token)"
+                updateKeywords: "PATCH /preferences/keywords (requires token)",
+                reset: "DELETE /preferences (requires token)"
             }
         }
     });
