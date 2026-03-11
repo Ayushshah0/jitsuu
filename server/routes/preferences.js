@@ -82,6 +82,10 @@ router.put('/', authMiddleware, async (req, res) => {
     
     if (notifications !== undefined) {
       preference.notifications = {
+        inApp: {
+          ...preference.notifications.inApp,
+          ...notifications.inApp
+        },
         email: {
           ...preference.notifications.email,
           ...notifications.email
@@ -162,16 +166,17 @@ router.patch('/theme', authMiddleware, async (req, res) => {
 // @access  Private
 router.patch('/notifications', authMiddleware, async (req, res) => {
   try {
-    const { email, push, browser } = req.body;
+    const { inApp, email, push, browser } = req.body;
     
     let preference = await Preference.findOne({ userId: req.user.id });
     
     if (!preference) {
       preference = new Preference({
         userId: req.user.id,
-        notifications: { email, push, browser }
+        notifications: { inApp, email, push, browser }
       });
     } else {
+      if (inApp) preference.notifications.inApp = { ...preference.notifications.inApp, ...inApp };
       if (email) preference.notifications.email = { ...preference.notifications.email, ...email };
       if (push) preference.notifications.push = { ...preference.notifications.push, ...push };
       if (browser) preference.notifications.browser = { ...preference.notifications.browser, ...browser };
@@ -205,16 +210,6 @@ router.patch('/keywords', authMiddleware, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Keywords must be an array'
-      });
-    }
-    
-    // Validate keywords
-    const invalidKeywords = keywords.filter(k => !allKeywords.includes(k));
-    if (invalidKeywords.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid keywords provided',
-        invalidKeywords
       });
     }
     

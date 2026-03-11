@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { newsService } from '../services/newsService';
+import ArticleCard from './ArticleCard';
 import ErrorMessage from './ErrorMessage';
 import SkeletonCard from './SkeletonCard';
 import './News.css';
@@ -36,7 +37,9 @@ function News() {
       }
     } catch (err) {
       setHasError(true);
-      setError('Failed to fetch news articles. Please try again.');
+      setError(
+        err.response?.data?.message || 'Failed to fetch news articles. Please try again.'
+      );
       console.error('News fetch failed:', err);
     } finally {
       setLoading(false);
@@ -55,32 +58,7 @@ function News() {
               <SkeletonCard key={`skeleton-${index}`} />
             ))
           : articles.map((article, index) => (
-              <article key={index} className="article-card">
-                {article.urlToImage && (
-                  <img
-                    src={article.urlToImage}
-                    alt={article.title}
-                    onError={(e) => (e.target.style.display = 'none')}
-                  />
-                )}
-                <div className="article-content">
-                  <h3>{article.title}</h3>
-                  <p className="description">{article.description}</p>
-                  <div className="article-footer">
-                    <small className="source">
-                      {article.source?.name || 'Unknown Source'}
-                    </small>
-                    <a
-                      href={article.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="read-more"
-                    >
-                      Read More →
-                    </a>
-                  </div>
-                </div>
-              </article>
+              <ArticleCard key={article.url || index} article={article} />
             ))}
       </div>
 

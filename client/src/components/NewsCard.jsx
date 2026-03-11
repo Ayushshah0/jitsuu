@@ -35,7 +35,9 @@ function NewsCard() {
       }
     } catch (err) {
       setHasError(true);
-      setError('Failed to fetch news articles. Please try again.');
+      setError(
+        err.response?.data?.message || 'Failed to fetch news articles. Please try again.'
+      );
       console.error('NewsCard fetch failed:', err);
     } finally {
       setLoading(false);

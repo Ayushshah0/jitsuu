@@ -12,7 +12,7 @@
 .news-header h1 {
   font-size: 2.5rem;
   margin-bottom: 20px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .category-selector {
@@ -31,15 +31,16 @@
 .category-selector select {
   padding: 10px 20px;
   font-size: 1rem;
-  border: 2px solid #646cff;
+  border: 2px solid var(--accent);
   border-radius: 8px;
-  background: white;
+  background: var(--input-bg);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .category-selector select:hover {
-  border-color: #535bf2;
+  border-color: var(--accent-hover);
   box-shadow: 0 2px 8px rgba(100, 108, 255, 0.2);
 }
 
@@ -51,12 +52,12 @@
 }
 
 .loading {
-  color: #646cff;
+  color: var(--accent);
 }
 
 .error {
-  color: #f44336;
-  background: #ffebee;
+  color: var(--error);
+  background: var(--error-bg);
   border-radius: 8px;
   margin: 20px auto;
   max-width: 600px;
@@ -70,10 +71,10 @@
 }
 
 .article-card {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.3s, box-shadow 0.3s;
   display: flex;
   flex-direction: column;
@@ -82,7 +83,7 @@
 
 .article-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .article-card img {
@@ -102,11 +103,11 @@
   margin: 0 0 12px 0;
   font-size: 1.2rem;
   line-height: 1.4;
-  color: #1a1a1a;
+  color: var(--text-primary);
 }
 
 .description {
-  color: #666;
+  color: var(--text-muted);
   font-size: 0.95rem;
   line-height: 1.6;
   margin-bottom: 16px;
@@ -119,16 +120,16 @@
   align-items: center;
   margin-top: auto;
   padding-top: 12px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-light);
 }
 
 .source {
-  color: #999;
+  color: var(--text-faint);
   font-size: 0.85rem;
 }
 
 .read-more {
-  color: #646cff;
+  color: var(--accent);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.9rem;
@@ -136,7 +137,7 @@
 }
 
 .read-more:hover {
-  color: #535bf2;
+  color: var(--accent-hover);
 }
 
 .pagination {
@@ -152,16 +153,16 @@
   padding: 12px 24px;
   font-size: 1rem;
   font-weight: 600;
-  border: 2px solid #646cff;
-  background: white;
-  color: #646cff;
+  border: 2px solid var(--accent);
+  background: var(--bg-secondary);
+  color: var(--accent);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .pagination button:hover:not(:disabled) {
-  background: #646cff;
+  background: var(--accent);
   color: white;
 }
 

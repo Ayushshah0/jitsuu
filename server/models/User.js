@@ -1,6 +1,39 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+const bookmarkSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    default: ''
+  },
+  url: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  urlToImage: {
+    type: String,
+    default: ''
+  },
+  sourceName: {
+    type: String,
+    default: 'Unknown Source'
+  },
+  publishedAt: {
+    type: Date,
+    default: null
+  },
+  savedAt: {
+    type: Date,
+    default: Date.now
+  }
+}, { _id: false });
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -28,6 +61,27 @@ const userSchema = new mongoose.Schema({
   isVerified: {
     type: Boolean,
     default: true // Set to true for now, can add email verification later
+  },
+  authProvider: {
+    type: String,
+    enum: ['local', 'google', 'facebook'],
+    default: 'local'
+  },
+  providerId: {
+    type: String,
+    default: null
+  },
+  bookmarks: {
+    type: [bookmarkSchema],
+    default: []
+  },
+  resetOtp: {
+    type: String,
+    select: false
+  },
+  resetOtpExpires: {
+    type: Date,
+    select: false
   },
   createdAt: {
     type: Date,

@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const { allKeywords } = require('../services/newsKeywords');
 
 const preferenceSchema = new mongoose.Schema({
   userId: {
@@ -32,16 +31,35 @@ const preferenceSchema = new mongoose.Schema({
   },
   keywords: {
     type: [String],
-    default: [],
-    validate: {
-      validator: function(v) {
-        if (!v || v.length === 0) return true; // Allow empty array
-        return v.every(keyword => allKeywords.includes(keyword));
-      },
-      message: 'Invalid keyword provided. Please choose from the predefined list.'
-    }
+    default: []
+  },
+  trackedKeywords: {
+    type: [String],
+    default: []
+  },
+  recentSearches: {
+    type: [
+      {
+        term: {
+          type: String,
+          required: true,
+          trim: true
+        },
+        searchedAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+    default: []
   },
   notifications: {
+    inApp: {
+      enabled: {
+        type: Boolean,
+        default: true
+      }
+    },
     email: {
       enabled: {
         type: Boolean,
@@ -71,6 +89,10 @@ const preferenceSchema = new mongoose.Schema({
     }
   },
   lastEmailSent: {
+    type: Date,
+    default: null
+  },
+  lastNotificationCheck: {
     type: Date,
     default: null
   }
