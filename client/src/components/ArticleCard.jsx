@@ -100,14 +100,16 @@ function ArticleCard({ article }) {
         )}
         <div className="article-footer">
           <small className="source">{article.source?.name || article.sourceName || 'Unknown Source'}</small>
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="read-more"
-          >
-            Read More →
-          </a>
+          <div className="article-footer-actions">
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="read-more"
+            >
+              Read More →
+            </a>
+          </div>
         </div>
       </div>
     </article>
