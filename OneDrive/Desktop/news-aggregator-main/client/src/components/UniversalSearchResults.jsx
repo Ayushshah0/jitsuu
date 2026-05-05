@@ -98,12 +98,12 @@ function UniversalSearchResults() {
   }
 
   return (
-    <section className="px-4 md:px-16 py-8">
+    <section className="w-full px-4 py-8">
       <h2 className="text-2xl md:text-3xl font-bold mb-2">Results for "{q}"</h2>
       {countryName && <p className="mb-4">Country filter: {countryName}</p>}
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
-      <div className="my-6 cards grid lg:place-content-center md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 xs:grid-cols-1 xs:gap-4 md:gap-10 lg:gap-14 xs:p-1">
+      <div className="cards my-6 w-full px-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {!isLoading ? (
           data.length > 0 ? (
             data.map((element, index) => (

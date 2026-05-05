@@ -1,0 +1,70 @@
+{
+  "agent": "news-chatbot",
+  "fulfillment": {
+    "webhookUrl": "/chatbot/webhook"
+  },
+  "intents": [
+    {
+      "name": "GetTopHeadlines",
+      "trainingPhrases": [
+        "what are the latest headlines",
+        "show me today's top news",
+        "news about technology",
+        "latest headlines in the US"
+      ],
+      "parameters": ["topic", "category", "location"],
+      "webhook": true
+    },
+    {
+      "name": "SummarizeNews",
+      "trainingPhrases": [
+        "summarize this story",
+        "give me a short summary",
+        "bullet points please",
+        "expand on this article"
+      ],
+      "parameters": ["topic", "article_url", "category", "location"],
+      "webhook": true
+    },
+    {
+      "name": "ExplainNews",
+      "trainingPhrases": [
+        "explain this like I'm five",
+        "what happened here",
+        "give me background context",
+        "timeline of this story"
+      ],
+      "parameters": ["topic", "category", "location"],
+      "webhook": true
+    },
+    {
+      "name": "RecommendNews",
+      "trainingPhrases": [
+        "recommend news for me",
+        "what should I read next",
+        "personalize my news feed",
+        "show articles based on my interests"
+      ],
+      "parameters": ["topic", "category", "location", "source"],
+      "webhook": true
+    },
+    {
+      "name": "SetPreferences",
+      "trainingPhrases": [
+        "follow AI and sports",
+        "update my preferences",
+        "set my interests to technology",
+        "change my language to English"
+      ],
+      "parameters": ["topics", "sources", "categories", "language", "country"],
+      "webhook": true
+    },
+    {
+      "name": "FallbackIntent",
+      "trainingPhrases": [
+        "unmatched"
+      ],
+      "webhook": true
+    }
+  ]
+}

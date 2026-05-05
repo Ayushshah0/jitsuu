@@ -6,6 +6,7 @@ const cors = require("cors");
 const preferencesRouter = require("./routes/preferences");
 const authRouter = require("./routes/auth");
 const summarizeRouter = require("./routes/summarize");
+const chatbotRouter = require("./routes/chatbot");
 const { connectDatabase } = require("./config/db");
 const app = express();
 
@@ -29,6 +30,8 @@ app.use("/preferences", preferencesRouter);
 app.use("/auth", authRouter);
 app.use("/summarize", summarizeRouter);
 app.use("/api/summarize", summarizeRouter);
+app.use("/chatbot", chatbotRouter);
+app.use("/api/chatbot", chatbotRouter);
 
 connectDatabase()
   .then(() => {
@@ -110,6 +113,16 @@ app.get("/all-news", async (req, res) => {
 });
 
 app.get("/top-headlines", async (req, res) => {
+  let pageSize = parseInt(req.query.pageSize) || 80;
+  let page = parseInt(req.query.page) || 1;
+  let category = req.query.category || "general";
+
+  let urlTemplate = `https://newsapi.org/v2/top-headlines?category=${category}&language=en&page=${page}&pageSize=${pageSize}&apiKey=__API_KEY__`;
+  const result = await makeApiRequest(urlTemplate);
+  res.status(result.status).json(result);
+});
+
+app.get("/news/top-headlines", async (req, res) => {
   let pageSize = parseInt(req.query.pageSize) || 80;
   let page = parseInt(req.query.page) || 1;
   let category = req.query.category || "general";

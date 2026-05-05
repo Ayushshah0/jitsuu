@@ -268,8 +268,8 @@ function Preferences() {
   }
 
   return (
-    <section className="mt-24 px-4 md:px-10 lg:px-16 pb-12">
-      <div className="max-w-5xl mx-auto rounded-2xl border border-sky-300/30 bg-slate-900/40 p-6 md:p-8 backdrop-blur-sm">
+    <section className="w-full flex items-center justify-center px-4 py-12 min-h-screen">
+      <div className="max-w-5xl rounded-2xl border border-sky-300/30 bg-slate-900/40 p-6 md:p-8 backdrop-blur-sm">
         <h2 className="text-3xl font-semibold mb-2">User Preferences</h2>
         <p className="opacity-80 mb-6">Customize your news feed, theme, and notifications.</p>
 

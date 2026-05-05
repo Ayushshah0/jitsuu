@@ -82,7 +82,7 @@ function CountryNews() {
   return (
     <>
       {error && <div className="text-red-500 mb-4">{error}</div>}
-      <section className="country-filter-wrap mt-24 px-4 md:px-10 lg:px-16">
+      <section className="country-filter-wrap mt-24 w-full px-4">
         <h2 className="country-title text-2xl md:text-3xl font-bold mb-4">{countryName} News</h2>
         <div className="country-category-row">
           {categories.map((category) => (
@@ -101,7 +101,7 @@ function CountryNews() {
         </div>
       </section>
 
-      <div className="my-10 cards grid lg:place-content-center md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 xs:grid-cols-1 xs:gap-4 md:gap-10 lg:gap-14 md:px-16 xs:p-3">
+      <div className="cards my-10 w-full px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {!isLoading ? (
           data.length > 0 ? (
             data.map((element, index) => (

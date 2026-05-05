@@ -51,16 +51,7 @@ async function getOrCreatePreferences(userId) {
   return preference;
 }
 
-router.get("/", requireAuth, requireDatabase, async (req, res) => {
-  try {
-    const preferences = await getOrCreatePreferences(req.user.id);
-    return sendSuccess(res, 200, "Preferences fetched", preferences);
-  } catch (error) {
-    return sendError(res, 503, "Database unavailable", error.message);
-  }
-});
-
-router.put("/", requireAuth, requireDatabase, async (req, res) => {
+async function savePreferences(req, res) {
   const { value, issues } = parseWithSchema(preferenceSchema, req.body);
   if (issues) {
     return sendError(res, 400, "Invalid preference payload", issues);
@@ -76,7 +67,19 @@ router.put("/", requireAuth, requireDatabase, async (req, res) => {
   } catch (error) {
     return sendError(res, 503, "Database unavailable", error.message);
   }
+}
+
+router.get("/", requireAuth, requireDatabase, async (req, res) => {
+  try {
+    const preferences = await getOrCreatePreferences(req.user.id);
+    return sendSuccess(res, 200, "Preferences fetched", preferences);
+  } catch (error) {
+    return sendError(res, 503, "Database unavailable", error.message);
+  }
 });
+
+router.put("/", requireAuth, requireDatabase, savePreferences);
+router.post("/", requireAuth, requireDatabase, savePreferences);
 
 router.patch("/theme", requireAuth, requireDatabase, async (req, res) => {
   const { value, issues } = parseWithSchema(themePatchSchema, req.body);

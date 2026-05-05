@@ -45,8 +45,8 @@ function Register() {
   }
 
   return (
-    <section className="mt-24 px-4 md:px-10 lg:px-16 pb-10">
-      <div className="max-w-md mx-auto rounded-2xl border border-sky-300/30 bg-slate-900/40 p-6 md:p-8">
+    <section className="w-full min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="max-w-md rounded-2xl border border-sky-300/30 bg-slate-900/40 p-6 md:p-8">
         <h2 className="text-3xl font-semibold mb-5">Create account</h2>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>

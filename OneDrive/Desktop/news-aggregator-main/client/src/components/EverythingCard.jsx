@@ -109,7 +109,7 @@ function Card(props) {
     <div className="everything-card">
       <div className="card-content flex flex-col p-5 gap-3 h-full">
         <b className="title">{props.title}</b>
-        <div className="everything-card-img mx-auto">
+        <div className="everything-card-img">
           <img className="everything-card-img" src={props.imgUrl} alt="img" />
         </div>
         <div className="description">

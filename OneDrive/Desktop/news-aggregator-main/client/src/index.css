@@ -90,14 +90,34 @@ body {
     transition: background 0.3s ease, color 0.25s ease;
 }
 
+@keyframes chatbot-pop {
+    0% { transform: scale(0.95); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.chatbot-pop {
+    animation: chatbot-pop 0.18s ease-out;
+}
+
+.chatbot-scrollbar::-webkit-scrollbar {
+    width: 10px;
+}
+
+.chatbot-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chatbot-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--border) 70%, transparent);
+    border-radius: 999px;
+}
+
 :focus-visible {
     outline: 2px solid var(--accent-cyan);
     outline-offset: 2px;
 }
 
-.container {
-    width: 100% !important;
-}
+
 
 nav {
     height: 70px;
@@ -526,30 +546,14 @@ textarea::placeholder {
 
 .cards {
     width: 100%;
-    max-width: 1320px;
-    margin: 2.5rem auto;
-    padding: 0 1rem;
+    margin: 0;
+    padding: 0;
     display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 1.5rem;
-    justify-items: center;
-}
-
-@media (min-width: 768px) {
-    .cards {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (min-width: 1280px) {
-    .cards {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
+    justify-items: stretch;
 }
 
 .everything-card {
     width: 100%;
-    max-width: 420px;
     min-height: 500px;
     height: 100%;
     overflow: hidden;
