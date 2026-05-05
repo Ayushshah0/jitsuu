@@ -1,4 +1,5 @@
 import "./App.css";
+import { useEffect, useState } from "react";
 import Header from "./components/Header";
 import AllNews from "./components/AllNews";
 import TopHeadlines from "./components/TopHeadlines";
@@ -18,9 +19,34 @@ import { useChat } from "./chatbot/hooks/useChat";
 
 function App() {
   const chat = useChat();
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("darkMode") === "true" || false;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem("darkMode", isDark);
+  }, [isDark]);
+
+  const toggleDarkMode = () => setIsDark(!isDark);
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden">
+    <div className="w-full min-h-screen overflow-x-hidden bg-white dark:bg-gray-900 text-black dark:text-white">
+      <div className="fixed top-4 right-4 z-40">
+        <button
+          onClick={toggleDarkMode}
+          className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 rounded-lg font-medium transition hover:bg-gray-300 dark:hover:bg-gray-600"
+        >
+          {isDark ? "☀️ Light" : "🌙 Dark"}
+        </button>
+      </div>
       <BrowserRouter>
         <Header />
         <Routes>

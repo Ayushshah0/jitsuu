@@ -1,27 +1,51 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
-import { postChatMessage } from "../api";
 
 const CHAT_HISTORY_KEY = "news-chatbot-history";
 const CHAT_SESSION_ID_KEY = "news-chatbot-session-id";
 const MAX_MESSAGES = 200;
+const BOT_REPLY_DELAY_MS = 900;
+
+function createTimestamp() {
+  return new Date().toISOString();
+}
 
 function readSessionId() {
+  if (typeof sessionStorage === "undefined") {
+    return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`;
+  }
+
   const existing = sessionStorage.getItem(CHAT_SESSION_ID_KEY);
   if (existing) {
     return existing;
   }
 
-  const newId = uuidv4();
+  const newId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`;
   sessionStorage.setItem(CHAT_SESSION_ID_KEY, newId);
   return newId;
+}
+
+function normalizeMessage(message, fallbackId = "") {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+
+  const sender = message.sender || (message.role === "user" ? "user" : "bot");
+
+  return {
+    id: message.id || `${fallbackId || sender}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    text: String(message.text || message.message || "").trim(),
+    sender: sender === "user" ? "user" : "bot",
+    timestamp: message.timestamp || createTimestamp(),
+  };
 }
 
 function readHistory() {
   try {
     const raw = sessionStorage.getItem(CHAT_HISTORY_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed.map((message, index) => normalizeMessage(message, `history-${index}`)).filter(Boolean)
+      : [];
   } catch (error) {
     console.warn("Unable to restore chat history", error);
     return [];
@@ -29,15 +53,29 @@ function readHistory() {
 }
 
 function persistHistory(messages) {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
   sessionStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES)));
 }
 
-function normalizeReply(payload) {
-  if (!payload) {
-    return "Sorry, I could not parse the response from the news assistant.";
+function buildMockReply(message) {
+  const lowerMessage = message.toLowerCase();
+
+  if (/(news|headline|headlines|latest)/i.test(lowerMessage)) {
+    return "Here are the latest headlines I can help with. Try asking about a country, a topic like technology, or a category like business.";
   }
 
-  return payload.reply || payload.fulfillmentText || payload.message || payload?.data?.reply || "Sorry, I did not get a useful response.";
+  if (/(technology|tech|ai|artificial intelligence)/i.test(lowerMessage)) {
+    return "Technology news is moving quickly right now. I can summarize the latest headlines if you want a short digest.";
+  }
+
+  if (/(sports|football|cricket|basketball|tennis)/i.test(lowerMessage)) {
+    return "Sports updates are available. Ask for the latest headlines and I’ll surface the most recent stories.";
+  }
+
+  return "I can help with headlines, a topic search, or a short news summary. Try asking for 'news' or a topic like 'Nepal' or 'technology'.";
 }
 
 export function useChat() {
@@ -50,6 +88,7 @@ export function useChat() {
   const inputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const sessionId = useRef(readSessionId());
+  const replyTimerRef = useRef(null);
 
   useEffect(() => {
     persistHistory(messages);
@@ -73,17 +112,21 @@ export function useChat() {
     messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, isOpen, isMinimized]);
 
+  useEffect(() => {
+    return () => {
+      if (replyTimerRef.current) {
+        clearTimeout(replyTimerRef.current);
+      }
+    };
+  }, []);
+
   const unreadCount = useMemo(() => {
     if (isOpen) {
       return 0;
     }
 
-    return messages.filter((message) => message.role === "assistant").length;
+    return messages.filter((message) => message.sender === "bot").length;
   }, [isOpen, messages]);
-
-  const appendMessage = useCallback((role, text) => {
-    setMessages((current) => [...current, { role, text }]);
-  }, []);
 
   const openChat = useCallback(() => {
     setIsOpen(true);
@@ -106,41 +149,88 @@ export function useChat() {
     setIsMinimized((current) => !current);
   }, []);
 
-  const sendMessage = useCallback(async () => {
-    const trimmedMessage = inputValue.trim();
+  const sendMessage = useCallback((text = inputValue) => {
+    const trimmedMessage = String(text || "").trim();
     if (!trimmedMessage || isSending) {
       return;
     }
 
-    const userMessage = { role: "user", text: trimmedMessage };
-    const loadingMessage = { role: "assistant", text: "Typing..." };
+    if (replyTimerRef.current) {
+      clearTimeout(replyTimerRef.current);
+    }
+
+    const userMessage = {
+      id: `user-${Date.now()}`,
+      text: trimmedMessage,
+      sender: "user",
+      timestamp: createTimestamp(),
+    };
+
+    const loadingMessage = {
+      id: `bot-loading-${Date.now()}`,
+      text: "Typing...",
+      sender: "bot",
+      timestamp: createTimestamp(),
+    };
+
     setInputValue("");
     setErrorMessage("");
     setMessages((current) => [...current, userMessage, loadingMessage]);
     setIsSending(true);
 
-    try {
-      const data = await postChatMessage(trimmedMessage, sessionId.current);
-      const reply = normalizeReply(data);
+    (async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      replyTimerRef.current = timeoutId;
 
-      setMessages((current) => {
-        const withoutLoading = current.filter((message) => message.text !== "Typing...");
-        return [...withoutLoading, userMessage, { role: "assistant", text: reply }];
-      });
-    } catch (error) {
-      console.error("Chatbot request failed:", error);
-      setErrorMessage("The news assistant is temporarily unavailable. Please try again.");
-      setMessages((current) => {
-        const withoutLoading = current.filter((message) => message.text !== "Typing...");
-        return [
-          ...withoutLoading,
-          userMessage,
-          { role: "assistant", text: "Sorry, I could not reach the news assistant right now. Please try again." },
-        ];
-      });
-    } finally {
-      setIsSending(false);
-    }
+      try {
+        const resp = await fetch("http://localhost:5000/chatbot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: trimmedMessage, session_id: sessionId.current }),
+          signal: controller.signal,
+        });
+
+        if (!resp.ok) {
+          throw new Error(`Request failed: ${resp.status}`);
+        }
+
+        const payload = await resp.json();
+        const reply = String(payload?.reply || buildMockReply(trimmedMessage)).trim();
+
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === loadingMessage.id
+              ? {
+                  id: `bot-${Date.now()}`,
+                  text: reply,
+                  sender: "bot",
+                  timestamp: createTimestamp(),
+                }
+              : message
+          )
+        );
+      } catch (err) {
+        const errMsg = err?.name === "AbortError" ? "Request timed out" : String(err?.message || "Request failed");
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === loadingMessage.id
+              ? {
+                  id: `bot-${Date.now()}`,
+                  text: `Error: ${errMsg}`,
+                  sender: "bot",
+                  timestamp: createTimestamp(),
+                }
+              : message
+          )
+        );
+        setErrorMessage(errMsg);
+      } finally {
+        clearTimeout(timeoutId);
+        replyTimerRef.current = null;
+        setIsSending(false);
+      }
+    })();
   }, [inputValue, isSending]);
 
   return {

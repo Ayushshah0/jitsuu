@@ -1,22 +1,41 @@
 import React from "react";
 
-function ChatMessage({ role, text }) {
-  const isUser = role === "user";
-  const isSystem = role === "system";
+function formatTimestamp(timestamp) {
+  if (!timestamp) {
+    return "";
+  }
+
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function ChatMessage({ sender = "bot", text = "", timestamp }) {
+  const isUser = sender === "user";
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
         className={[
-          "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
+          "max-w-[85%] rounded-lg px-4 py-3 text-sm leading-relaxed shadow-sm border-2",
           isUser
-            ? "bg-gradient-to-r from-[var(--accent-purple)] to-[var(--accent-pink)] text-white"
-            : isSystem
-            ? "border border-dashed border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_78%,transparent)] text-[var(--text-secondary)]"
-            : "bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] border border-[var(--border)] text-[var(--txt)]",
+            ? "bg-blue-500 text-white dark:bg-blue-500 border-blue-600 dark:border-blue-600"
+            : "bg-gray-200 text-black dark:bg-gray-200 dark:text-black border-gray-300 dark:border-gray-300",
         ].join(" ")}
+        style={{ opacity: 1 }}
       >
-        <p className="whitespace-pre-wrap">{text}</p>
+        <p className="whitespace-pre-wrap break-words font-bold">{text}</p>
+        {timestamp ? (
+          <p className={`mt-2 text-[11px] ${isUser ? "text-blue-100" : "text-gray-700 dark:text-gray-700"}`}>
+            {formatTimestamp(timestamp)}
+          </p>
+        ) : null}
       </div>
     </div>
   );

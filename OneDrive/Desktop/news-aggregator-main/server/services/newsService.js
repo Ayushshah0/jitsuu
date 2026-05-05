@@ -1,13 +1,14 @@
 const axios = require("axios");
-const { NewsCache } = require("./newsCache");
 
-const cache = new NewsCache();
-const API_KEYS = [
-  process.env.API_KEY,
-  process.env.API_KEY_2,
-  process.env.API_KEY_3,
-  process.env.API_KEY_4,
-].filter(Boolean);
+const NEWS_API_BASE_URL = "https://newsapi.org/v2";
+const DEFAULT_TIMEOUT_MS = 10000;
+
+const memoryCache = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+function getNewsApiKey() {
+  return process.env.NEWS_API_KEY || process.env.API_KEY || process.env.API_KEY_2 || process.env.API_KEY_3 || process.env.API_KEY_4 || "";
+}
 
 function buildCacheKey(prefix, params = {}) {
   return `${prefix}:${Object.keys(params)
@@ -16,102 +17,99 @@ function buildCacheKey(prefix, params = {}) {
     .join("|")}`;
 }
 
-async function requestWithKeyRotation(urlTemplate) {
-  let anyRetriableFailure = false;
-  let lastError = null;
-
-  for (let i = 0; i < API_KEYS.length; i++) {
-    const url = urlTemplate.replace("__API_KEY__", API_KEYS[i]);
-    try {
-      const response = await axios.get(url, { timeout: 1500 });
-      return {
-        success: true,
-        source: `API_KEY_${i + 1}`,
-        data: response.data,
-      };
-    } catch (error) {
-      const apiErrorCode = error.response?.data?.code;
-      lastError = error.response?.data || error.message;
-
-      if (["rateLimited", "apiKeyInvalid", "apiKeyDisabled"].includes(apiErrorCode)) {
-        anyRetriableFailure = true;
-        continue;
-      }
-
-      return {
-        success: false,
-        error: error.response?.data || error.message,
-      };
-    }
+function readCache(key) {
+  const entry = memoryCache.get(key);
+  if (!entry) {
+    return null;
   }
 
-  if (anyRetriableFailure) {
-    return {
-      success: false,
-      error: lastError || "All NewsAPI keys failed",
-    };
+  if (Date.now() > entry.expiresAt) {
+    memoryCache.delete(key);
+    return null;
   }
 
-  return {
-    success: false,
-    error: "No NewsAPI keys are configured on the server",
-  };
+  return entry.value;
 }
 
-async function fetchTopHeadlines({ topic, category = "general", location = "us", pageSize = 5 } = {}) {
-  const normalizedTopic = (topic || "").trim();
-  const cacheKey = buildCacheKey("headlines", {
-    topic: normalizedTopic,
-    category,
-    location,
+function writeCache(key, value) {
+  memoryCache.set(key, {
+    value,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  });
+}
+
+async function fetchNews(endpoint, params = {}) {
+  const apiKey = getNewsApiKey();
+  if (!apiKey) {
+    throw new Error("Missing NEWS_API_KEY");
+  }
+
+  const response = await axios.get(`${NEWS_API_BASE_URL}/${endpoint}`, {
+    timeout: DEFAULT_TIMEOUT_MS,
+    params: {
+      ...params,
+      apiKey,
+    },
+  });
+
+  return response.data;
+}
+
+async function fetchTopHeadlines({ pageSize = 5 } = {}) {
+  const cacheKey = buildCacheKey("top-headlines", { pageSize });
+  const cached = readCache(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const data = await fetchNews("top-headlines", {
+    country: "us",
     pageSize,
   });
 
-  const cached = cache.get(cacheKey);
+  writeCache(cacheKey, data);
+  return data;
+}
+
+async function fetchTopicNews(topic, { pageSize = 5 } = {}) {
+  const normalizedTopic = String(topic || "").trim();
+  const cacheKey = buildCacheKey("topic-news", { topic: normalizedTopic, pageSize });
+
+  const cached = readCache(cacheKey);
   if (cached) {
-    return { ...cached, cached: true };
+    return cached;
   }
 
-  const query = normalizedTopic || category || "world";
-  const urlTemplate = normalizedTopic
-    ? `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=en&sortBy=publishedAt&pageSize=${pageSize}&apiKey=__API_KEY__`
-    : `https://newsapi.org/v2/top-headlines?country=${location}&category=${category}&language=en&pageSize=${pageSize}&apiKey=__API_KEY__`;
-
-  const result = await requestWithKeyRotation(urlTemplate);
-
-  if (!result.success) {
-    return result;
+  if (!normalizedTopic) {
+    return { articles: [], totalResults: 0 };
   }
 
-  const payload = {
-    success: true,
-    cached: false,
-    source: result.source,
-    data: result.data,
-  };
+  const data = await fetchNews("everything", {
+    q: normalizedTopic,
+    pageSize,
+    sortBy: "publishedAt",
+    language: "en",
+  });
 
-  cache.set(cacheKey, payload);
-  return payload;
+  writeCache(cacheKey, data);
+  return data;
 }
 
 function extractArticleSummary(article = {}) {
-  const title = article.title || article.headline || "Untitled article";
-  const description = article.description || article.summary || "";
-  const sourceName = article.source?.name || article.sourceName || "Unknown source";
-  const publishedAt = article.publishedAt || article.timestamp || null;
-  const url = article.url || article.link || null;
-
   return {
-    title,
-    description,
-    sourceName,
-    publishedAt,
-    url,
+    title: article.title || "Untitled article",
+    description: article.description || article.content || "",
+    sourceName: article.source?.name || "Unknown source",
+    publishedAt: article.publishedAt || null,
+    url: article.url || null,
   };
 }
 
+// Optional hooks for a future Redis layer or Dialogflow webhook orchestration.
+// The current implementation keeps things self-contained and fast for a single-node deployment.
+
 module.exports = {
   fetchTopHeadlines,
+  fetchTopicNews,
   extractArticleSummary,
-  requestWithKeyRotation,
 };

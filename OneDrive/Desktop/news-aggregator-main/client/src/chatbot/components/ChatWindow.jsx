@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ChatMessage from "./ChatMessage";
 
 function ChatWindow({
@@ -15,6 +15,23 @@ function ChatWindow({
   inputRef,
   messagesEndRef,
 }) {
+  const widgetRef = useRef(null);
+  const localMessagesEndRef = useRef(null);
+  const dragStateRef = useRef({ dragging: false, offsetX: 0, offsetY: 0 });
+  const [position, setPosition] = useState(() => {
+    if (typeof window === "undefined") {
+      return { x: 0, y: 0 };
+    }
+
+    const widgetWidth = 392;
+    const widgetHeight = 612;
+    const x = Math.max(12, window.innerWidth - widgetWidth - 12);
+    const y = Math.max(12, window.innerHeight - widgetHeight - 12);
+    return { x, y };
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const endRef = messagesEndRef || localMessagesEndRef;
+
   useEffect(() => {
     if (isOpen && !isMinimized && inputRef.current) {
       inputRef.current.focus();
@@ -32,23 +49,189 @@ function ChatWindow({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const clampPosition = () => {
+      const width = widgetRef.current?.offsetWidth || 392;
+      const height = widgetRef.current?.offsetHeight || 612;
+      setPosition((current) => ({
+        x: Math.min(Math.max(12, current.x), Math.max(12, window.innerWidth - width - 12)),
+        y: Math.min(Math.max(12, current.y), Math.max(12, window.innerHeight - height - 12)),
+      }));
+    };
+
+    window.addEventListener("resize", clampPosition);
+    return () => window.removeEventListener("resize", clampPosition);
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) {
+      return undefined;
+    }
+
+    const handleMouseMove = (event) => {
+      const width = widgetRef.current?.offsetWidth || 392;
+      const height = widgetRef.current?.offsetHeight || 612;
+      const nextX = event.clientX - dragStateRef.current.offsetX;
+      const nextY = event.clientY - dragStateRef.current.offsetY;
+
+      setPosition({
+        x: Math.min(Math.max(12, nextX), Math.max(12, window.innerWidth - width - 12)),
+        y: Math.min(Math.max(12, nextY), Math.max(12, window.innerHeight - height - 12)),
+      });
+    };
+
+    const handleMouseUp = () => {
+      dragStateRef.current.dragging = false;
+      setIsDragging(false);
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging]);
+
+  useEffect(() => {
+    if (!isDragging) {
+      return undefined;
+    }
+
+    const handleTouchMove = (event) => {
+      const touch = event.touches[0];
+      if (!touch) {
+        return;
+      }
+
+      event.preventDefault();
+      const width = widgetRef.current?.offsetWidth || 392;
+      const height = widgetRef.current?.offsetHeight || 612;
+      const nextX = touch.clientX - dragStateRef.current.offsetX;
+      const nextY = touch.clientY - dragStateRef.current.offsetY;
+
+      setPosition({
+        x: Math.min(Math.max(12, nextX), Math.max(12, window.innerWidth - width - 12)),
+        y: Math.min(Math.max(12, nextY), Math.max(12, window.innerHeight - height - 12)),
+      });
+    };
+
+    const handleTouchEnd = () => {
+      dragStateRef.current.dragging = false;
+      setIsDragging(false);
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd);
+    window.addEventListener("touchcancel", handleTouchEnd);
+
+    return () => {
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [isDragging]);
+
+  const beginDrag = (clientX, clientY) => {
+    const width = widgetRef.current?.offsetWidth || 392;
+    const height = widgetRef.current?.offsetHeight || 612;
+
+    dragStateRef.current = {
+      dragging: true,
+      offsetX: clientX - position.x,
+      offsetY: clientY - position.y,
+    };
+
+    setPosition((current) => ({
+      x: Math.min(Math.max(12, current.x), Math.max(12, window.innerWidth - width - 12)),
+      y: Math.min(Math.max(12, current.y), Math.max(12, window.innerHeight - height - 12)),
+    }));
+    setIsDragging(true);
+    document.body.style.userSelect = "none";
+  };
+
+  const handleMouseDown = (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const interactive = event.target.closest("button, input, textarea, select, a");
+    if (interactive) {
+      return;
+    }
+
+    beginDrag(event.clientX, event.clientY);
+  };
+
+  const handleTouchStart = (event) => {
+    const touch = event.touches[0];
+    if (!touch) {
+      return;
+    }
+
+    const interactive = event.target.closest("button, input, textarea, select, a");
+    if (interactive) {
+      return;
+    }
+
+    event.preventDefault();
+    beginDrag(touch.clientX, touch.clientY);
+  };
+
+  const handleSend = () => {
+    if (typeof onSend === "function") {
+      onSend();
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSend();
+    }
+  };
+
   if (!isOpen) {
     return null;
   }
 
   return (
-    <div className="fixed bottom-24 right-5 z-50 flex w-[calc(100vw-2rem)] max-w-md flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--primary)] shadow-[0_24px_60px_rgba(0,0,0,0.32)] backdrop-blur-sm sm:right-5 sm:w-[420px] sm:max-w-[420px]">
-      <div className="flex items-center justify-between border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] px-4 py-3">
-        <div>
-          <h2 className="text-base font-semibold text-[var(--heading)]">News Assistant 🤖</h2>
-          <p className="text-xs text-[var(--text-muted)]">Ask for summaries, explanations, or recommendations.</p>
+    <div
+      ref={widgetRef}
+      className="fixed z-50 flex flex-col overflow-hidden rounded-xl bg-white dark:bg-white text-black dark:text-black shadow-lg border-2 border-gray-300 dark:border-gray-300"
+      style={{
+        backgroundColor: "#ffffff",
+        color: "#000000",
+        opacity: 1,
+        backdropFilter: "none",
+        left: position.x,
+        top: position.y,
+        width: "min(24rem, calc(100vw - 1rem))",
+        height: "min(36rem, calc(100vh - 1rem))",
+      }}
+    >
+      <div
+        className="bg-blue-500 dark:bg-blue-600 text-white px-4 py-3 flex items-center justify-between cursor-grab active:cursor-grabbing select-none"
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+      >
+        <div className="pr-3">
+          <h2 className="text-sm font-bold">News Assistant</h2>
+          <p className="text-xs font-bold">Drag me anywhere. Ask for headlines or a topic.</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onMinimize}
             aria-label={isMinimized ? "Expand chat window" : "Minimize chat window"}
-            className="rounded-full border border-[var(--border)] px-3 py-1 text-sm hover:bg-[var(--surface-strong)]"
+            className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white transition hover:bg-white/20"
           >
             {isMinimized ? "▢" : "—"}
           </button>
@@ -56,7 +239,7 @@ function ChatWindow({
             type="button"
             onClick={onClose}
             aria-label="Close chat window"
-            className="rounded-full border border-[var(--border)] px-3 py-1 text-sm hover:bg-[var(--surface-strong)]"
+            className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white transition hover:bg-white/20"
           >
             ✕
           </button>
@@ -64,72 +247,80 @@ function ChatWindow({
       </div>
 
       {!isMinimized && (
-        <>
-          <div className="chatbot-scrollbar flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        <div
+          className="flex min-h-0 flex-1 flex-col bg-white dark:bg-white"
+          style={{ backgroundColor: "#ffffff", opacity: 1 }}
+        >
+          <div
+            className="overflow-y-auto bg-white dark:bg-white min-h-0 flex-1 space-y-3 px-4 py-4"
+            style={{ backgroundColor: "#ffffff", opacity: 1 }}
+          >
             {messages.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] p-4 text-sm text-[var(--text-secondary)]">
-                Start with a question like “summarize the latest AI news” or “explain the election story.”
+              <div
+                className="rounded-lg border-2 border-gray-300 dark:border-gray-300 bg-gray-100 dark:bg-gray-100 p-4 text-sm text-gray-800 dark:text-gray-800 font-bold"
+                style={{ backgroundColor: "#f3f4f6", opacity: 1 }}
+              >
+                Start with a question like “show me the latest news” or “technology headlines”.
               </div>
             )}
 
             {messages.map((message, index) => (
-              <ChatMessage key={`${message.role}-${index}-${message.text.slice(0, 12)}`} role={message.role} text={message.text} />
+              <ChatMessage
+                key={message.id || `${message.sender || message.role}-${index}`}
+                sender={message.sender || message.role}
+                text={message.text}
+                timestamp={message.timestamp}
+              />
             ))}
 
             {isSending && (
               <div className="flex justify-start">
-                <div className="rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] px-4 py-3 text-sm text-[var(--text-secondary)]">
-                  <span className="inline-flex gap-1">
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--accent-cyan)] [animation-delay:-0.2s]"></span>
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--accent-cyan)] [animation-delay:-0.1s]"></span>
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--accent-cyan)]"></span>
-                  </span>
+                <div
+                  className="rounded-lg border-2 border-gray-300 dark:border-gray-300 bg-gray-100 dark:bg-gray-100 px-4 py-3 text-sm text-gray-800 dark:text-gray-800 font-bold"
+                  style={{ backgroundColor: "#f3f4f6", opacity: 1 }}
+                >
+                  Thinking...
                 </div>
               </div>
             )}
 
-            <div ref={messagesEndRef} />
+            <div ref={endRef} />
           </div>
 
           {errorMessage && (
-            <div className="border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--accent-pink)_12%,transparent)] px-4 py-2 text-xs text-[var(--text-secondary)]">
+            <div className="border-t border-rose-200/30 bg-rose-50/60 px-4 py-2 text-xs text-rose-700">
               {errorMessage}
             </div>
           )}
 
-          <div className="border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_96%,transparent)] p-4">
+          <div
+            className="bg-white dark:bg-white border-t-2 border-gray-300 dark:border-gray-300 p-4"
+            style={{ backgroundColor: "#ffffff", opacity: 1 }}
+          >
             <div className="flex gap-2">
-              <input
+              <textarea
                 ref={inputRef}
-                type="text"
                 value={inputValue}
                 onChange={(event) => onInputChange(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    onSend();
-                  }
-                }}
+                onKeyDown={handleKeyDown}
                 placeholder="Ask the news assistant..."
                 aria-label="Chat input"
-                className="flex-1 rounded-2xl border border-[var(--border)] bg-[var(--primary)] px-4 py-3 text-sm text-[var(--txt)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-cyan)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-glow)]"
+                rows={2}
+                className="min-h-[56px] flex-1 resize-none rounded-lg border-2 border-gray-300 dark:border-gray-300 bg-white dark:bg-white text-black dark:text-black px-4 py-3 text-sm placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 font-bold"
+                style={{ backgroundColor: "#ffffff", color: "#000000", opacity: 1 }}
               />
               <button
                 type="button"
-                onClick={onSend}
+                onClick={handleSend}
                 disabled={isSending || !inputValue.trim()}
-                className="rounded-2xl bg-gradient-to-r from-[var(--accent-purple)] to-[var(--accent-pink)] px-4 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+                className="self-end rounded-lg bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Send
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
-
-      {/* Optional enhancement: typing indicator can replace the simple loading dots above. */}
-      {/* Optional enhancement: voice input can be added here with Web Speech API or native mobile bridge. */}
-      {/* Optional enhancement: include Authorization header support via setChatAuthToken in api.js. */}
     </div>
   );
 }
